@@ -375,7 +375,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         showLoadingWidget(message.settings);
         getRecommendation(text, '', message.settings.rssFeeds, message.settings.minSimilarity).then(result => {
           if (result.success) {
-            insertRecommendations(result.recommendations, message.settings);
+            if (result.recommendations.length > 0) {
+              insertRecommendations(result.recommendations, message.settings);
+            } else {
+              // No recommendations, remove widget
+              const existing = document.getElementById('story-recommender-widget');
+              if (existing) {
+                existing.remove();
+              }
+            }
           } else {
             showErrorWidget(result.error, message.settings);
           }
@@ -408,7 +416,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             showLoadingWidget(settings);
             getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
               if (result.success) {
-                insertRecommendations(result.recommendations, settings);
+                if (result.recommendations.length > 0) {
+                  insertRecommendations(result.recommendations, settings);
+                } else {
+                  // No recommendations, remove widget
+                  const existing = document.getElementById('story-recommender-widget');
+                  if (existing) {
+                    existing.remove();
+                  }
+                }
               } else {
                 showErrorWidget(result.error, settings);
               }
@@ -442,7 +458,16 @@ chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
     getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
       if (result.success) {
         console.log("Story Recommender: Successfully loaded", result.recommendations.length, "recommendations");
-        insertRecommendations(result.recommendations, settings);
+        if (result.recommendations.length > 0) {
+          insertRecommendations(result.recommendations, settings);
+        } else {
+          console.log("Story Recommender: No recommendations above similarity threshold");
+          // No recommendations, remove widget
+          const existing = document.getElementById('story-recommender-widget');
+          if (existing) {
+            existing.remove();
+          }
+        }
       } else {
         console.error("Story Recommender: Error loading recommendations:", result.error);
         showErrorWidget(result.error, settings);

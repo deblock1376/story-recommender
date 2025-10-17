@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Story Recommender Settings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="settings-container">
+    <h2>Story Recommender Settings</h2>
+
+    <div class="setting-group">
+      <label class="toggle-label">
+        <input type="checkbox" id="enabled" checked>
+        <span>Enable Recommendations</span>
+      </label>
+    </div>
+
+    <div class="setting-group">
+      <label for="position">Widget Position</label>
+      <select id="position">
+        <option value="top-right">Top Right</option>
+        <option value="top-left">Top Left</option>
+        <option value="bottom-right">Bottom Right</option>
+        <option value="bottom-left">Bottom Left</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label for="size">Widget Size</label>
+      <select id="size">
+        <option value="small">Small</option>
+        <option value="medium" selected>Medium</option>
+        <option value="large">Large</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label for="theme">Theme</label>
+      <select id="theme">
+        <option value="light" selected>Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label for="rssFeeds">RSS Feed URLs (one per line)</label>
+      <textarea id="rssFeeds" rows="4" placeholder="https://www.mirrorindy.org/feed&#10;https://example.com/feed&#10;https://another-site.com/rss"></textarea>
+      <small style="color: #666; font-size: 11px; margin-top: 4px; display: block;">
+        Add multiple RSS feeds, one per line. Leave blank to use Mirror Indy's feed only.
+      </small>
+    </div>
+
+    <div class="setting-group">
+      <button id="save">Save Settings</button>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -17,10 +17,21 @@ async function getRecommendation(text, storyId = "", rssFeeds = null, minSimilar
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      throw new Error(`Invalid JSON response: ${jsonError.message}`);
+    }
+
+    // Validate response structure
+    if (!data || !Array.isArray(data.recommendations)) {
+      throw new Error('Invalid response format: missing recommendations array');
+    }
 
     // Update badge with recommendation count
     chrome.runtime.sendMessage({

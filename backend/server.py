@@ -201,7 +201,12 @@ def calculate_similarity_tfidf(input_text, stories):
 def recommend():
     """
     Endpoint to get story recommendations
-    Expects JSON: { "text": "article text", "exclude_id": "optional_id_to_exclude", "feed_urls": ["url1", "url2"] }
+    Expects JSON: {
+        "text": "article text",
+        "exclude_id": "optional_id_to_exclude",
+        "feed_urls": ["url1", "url2"],
+        "min_similarity": 0.01  # optional, default 0.01
+    }
     Returns JSON: { "recommendations": [{ "title": "...", "link": "..." }] }
     """
     try:
@@ -213,6 +218,7 @@ def recommend():
         text = data['text']
         exclude_id = data.get('exclude_id', '')
         feed_urls = data.get('feed_urls', None)
+        min_similarity = data.get('min_similarity', 0.01)  # Default threshold
 
         # Also support old single feed_url parameter for backward compatibility
         if not feed_urls and 'feed_url' in data:
@@ -234,19 +240,16 @@ def recommend():
         scored_stories = calculate_similarity_tfidf(text, filtered_stories)
 
         # Get top recommendations (up to 5)
-        # Filter out stories with very low similarity (< 0.01)
+        # Filter out stories with similarity below threshold
         recommendations = [
             story for score, story in scored_stories[:10]
-            if score > 0.01
+            if score >= min_similarity
         ][:5]
-
-        # If no good matches, return most recent stories
-        if len(recommendations) == 0:
-            recommendations = filtered_stories[:5]
 
         # Log similarity scores for debugging
         if scored_stories:
             print(f"Top recommendation scores: {[round(score, 3) for score, _ in scored_stories[:5]]}")
+            print(f"Threshold: {min_similarity}, Recommendations after filtering: {len(recommendations)}")
 
         # Format response (only include title and link)
         response = {

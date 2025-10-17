@@ -1,8 +1,11 @@
-async function getRecommendation(text, storyId = "", rssFeeds = null) {
+async function getRecommendation(text, storyId = "", rssFeeds = null, minSimilarity = 0.01) {
   try {
     const requestBody = { text, exclude_id: storyId };
     if (rssFeeds) {
       requestBody.feed_urls = rssFeeds;
+    }
+    if (minSimilarity !== undefined && minSimilarity !== null) {
+      requestBody.min_similarity = minSimilarity;
     }
 
     const response = await fetch("http://localhost:8000/recommend", {
@@ -347,7 +350,8 @@ const DEFAULT_SETTINGS = {
   position: 'top-right',
   size: 'medium',
   theme: 'light',
-  rssFeeds: ['https://www.mirrorindy.org/feed']
+  rssFeeds: ['https://www.mirrorindy.org/feed'],
+  minSimilarity: 0.1  // Default threshold: 0.1 (10% similarity minimum)
 };
 
 // Track if widget has been dismissed on this page
@@ -369,7 +373,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const text = extractStoryText();
       if (text.length > 10) {
         showLoadingWidget(message.settings);
-        getRecommendation(text, '', message.settings.rssFeeds).then(result => {
+        getRecommendation(text, '', message.settings.rssFeeds, message.settings.minSimilarity).then(result => {
           if (result.success) {
             insertRecommendations(result.recommendations, message.settings);
           } else {
@@ -402,7 +406,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const text = extractStoryText();
           if (text.length > 10) {
             showLoadingWidget(settings);
-            getRecommendation(text, '', settings.rssFeeds).then(result => {
+            getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
               if (result.success) {
                 insertRecommendations(result.recommendations, settings);
               } else {
@@ -435,7 +439,7 @@ chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
 
   if (text.length > 10) {
     showLoadingWidget(settings);
-    getRecommendation(text, '', settings.rssFeeds).then(result => {
+    getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
       if (result.success) {
         console.log("Story Recommender: Successfully loaded", result.recommendations.length, "recommendations");
         insertRecommendations(result.recommendations, settings);

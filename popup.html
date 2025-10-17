@@ -52,6 +52,14 @@
     </div>
 
     <div class="setting-group">
+      <label for="minSimilarity">Minimum Similarity: <span id="similarityValue">10%</span></label>
+      <input type="range" id="minSimilarity" min="0" max="50" step="1" value="10" style="width: 100%;">
+      <small style="color: #666; font-size: 11px; margin-top: 4px; display: block;">
+        Only show recommendations above this similarity threshold. Higher = stricter matching.
+      </small>
+    </div>
+
+    <div class="setting-group">
       <button id="save">Save Settings</button>
     </div>
 

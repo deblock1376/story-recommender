@@ -153,7 +153,7 @@ function cleanText(element) {
   return text;
 }
 
-function createCloseButton(container) {
+function createCloseButton(container, settings) {
   const button = document.createElement('button');
   button.id = 'close-widget';
   button.textContent = '×';
@@ -163,6 +163,8 @@ function createCloseButton(container) {
   button.style.cursor = 'pointer';
   button.style.padding = '0';
   button.style.lineHeight = '1';
+  // Set color based on theme
+  button.style.color = settings.theme === 'dark' ? '#e0e0e0' : '#333';
   button.addEventListener('click', () => {
     container.remove();
     widgetDismissed = true;
@@ -194,7 +196,7 @@ function showLoadingWidget(settings) {
   title.textContent = 'Related Stories';
 
   header.appendChild(title);
-  header.appendChild(createCloseButton(container));
+  header.appendChild(createCloseButton(container, settings));
 
   // Create loading message
   const loading = document.createElement('div');
@@ -233,7 +235,7 @@ function showErrorWidget(errorMessage, settings) {
   title.textContent = 'Related Stories';
 
   header.appendChild(title);
-  header.appendChild(createCloseButton(container));
+  header.appendChild(createCloseButton(container, settings));
 
   // Create error message
   const errorDiv = document.createElement('div');
@@ -285,7 +287,7 @@ function insertRecommendations(recommendations, settings) {
   title.textContent = 'Related Stories';
 
   header.appendChild(title);
-  header.appendChild(createCloseButton(container));
+  header.appendChild(createCloseButton(container, settings));
 
   // Create list
   const list = document.createElement('ul');

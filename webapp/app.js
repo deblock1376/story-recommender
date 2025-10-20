@@ -1,14 +1,33 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:8000';
 
+// Default groups structure
+const DEFAULT_GROUPS = {
+  activeGroup: 'default',
+  groups: {
+    'default': {
+      name: 'Default',
+      feeds: ['https://www.mirrorindy.org/feed'],
+      minSimilarity: 0.1
+    }
+  }
+};
+
+// Current groups state
+let groupsData = null;
+
 // DOM Elements
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
 const articleUrlInput = document.getElementById('article-url');
 const articleTextInput = document.getElementById('article-text');
+const groupSelectEl = document.getElementById('group-select');
+const groupNameInput = document.getElementById('group-name');
 const feedUrlsInput = document.getElementById('feed-urls');
 const minSimilarityInput = document.getElementById('min-similarity');
 const similarityValueSpan = document.getElementById('similarity-value');
+const newGroupBtn = document.getElementById('new-group-btn');
+const deleteGroupBtn = document.getElementById('delete-group-btn');
 const findBtn = document.getElementById('find-btn');
 const resultsSection = document.getElementById('results-section');
 const loadingEl = document.getElementById('loading');
@@ -74,19 +93,18 @@ findBtn.addEventListener('click', async () => {
     }
   }
 
-  // Get feed URLs
-  const feedUrls = feedUrlsInput.value
-    .split('\n')
-    .map(url => url.trim())
-    .filter(url => url.length > 0);
+  // Save current group before searching
+  saveCurrentGroup();
+
+  // Get current group's settings
+  const currentGroup = groupsData.groups[groupsData.activeGroup];
+  const feedUrls = currentGroup.feeds;
+  const minSimilarity = currentGroup.minSimilarity;
 
   if (feedUrls.length === 0) {
-    showError('Please add at least one RSS feed URL');
+    showError('Please add at least one RSS feed URL to this group');
     return;
   }
-
-  // Get similarity threshold
-  const minSimilarity = parseInt(minSimilarityInput.value) / 100;
 
   // Find recommendations
   await findRecommendations(text, isUrl, feedUrls, minSimilarity);
@@ -271,6 +289,146 @@ async function findRecommendations(text, isUrl, feedUrls, minSimilarity) {
     showError(error.message || 'An unexpected error occurred. Make sure the backend server is running at http://localhost:8000');
   }
 }
+
+// ===== GROUP MANAGEMENT =====
+
+// Load groups from localStorage
+function loadGroups() {
+  const saved = localStorage.getItem('storyRecommenderGroups');
+  if (saved) {
+    try {
+      groupsData = JSON.parse(saved);
+    } catch (e) {
+      groupsData = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+    }
+  } else {
+    groupsData = JSON.parse(JSON.stringify(DEFAULT_GROUPS));
+  }
+  return groupsData;
+}
+
+// Save groups to localStorage
+function saveGroups() {
+  localStorage.setItem('storyRecommenderGroups', JSON.stringify(groupsData));
+}
+
+// Populate group dropdown
+function populateGroupSelect() {
+  groupSelectEl.innerHTML = '';
+  Object.keys(groupsData.groups).forEach(groupId => {
+    const group = groupsData.groups[groupId];
+    const option = document.createElement('option');
+    option.value = groupId;
+    option.textContent = group.name;
+    groupSelectEl.appendChild(option);
+  });
+  groupSelectEl.value = groupsData.activeGroup;
+}
+
+// Load group into UI
+function loadGroup(groupId) {
+  const group = groupsData.groups[groupId];
+  if (!group) return;
+
+  groupNameInput.value = group.name;
+  feedUrlsInput.value = group.feeds.join('\n');
+
+  const similarityPercent = Math.round(group.minSimilarity * 100);
+  minSimilarityInput.value = similarityPercent;
+  similarityValueSpan.textContent = similarityPercent + '%';
+
+  // Update delete button state
+  deleteGroupBtn.disabled = Object.keys(groupsData.groups).length === 1;
+}
+
+// Save current group data
+function saveCurrentGroup() {
+  const groupId = groupsData.activeGroup;
+  const group = groupsData.groups[groupId];
+  if (!group) return;
+
+  // Update group name
+  const newName = groupNameInput.value.trim();
+  if (newName) {
+    group.name = newName;
+  }
+
+  // Update feeds
+  const feedsText = feedUrlsInput.value.trim();
+  const feeds = feedsText
+    .split('\n')
+    .map(url => url.trim())
+    .filter(url => url.length > 0);
+  group.feeds = feeds.length > 0 ? feeds : DEFAULT_GROUPS.groups.default.feeds;
+
+  // Update similarity
+  group.minSimilarity = parseInt(minSimilarityInput.value) / 100;
+
+  saveGroups();
+}
+
+// Handle group change
+function handleGroupChange() {
+  saveCurrentGroup();
+  groupsData.activeGroup = groupSelectEl.value;
+  loadGroup(groupsData.activeGroup);
+  saveGroups();
+}
+
+// Create new group
+function createNewGroup() {
+  const groupName = prompt('Enter group name:', 'New Group');
+  if (!groupName) return;
+
+  const groupId = 'group_' + Date.now();
+  groupsData.groups[groupId] = {
+    name: groupName,
+    feeds: ['https://www.mirrorindy.org/feed'],
+    minSimilarity: 0.1
+  };
+
+  groupsData.activeGroup = groupId;
+  populateGroupSelect();
+  loadGroup(groupId);
+  saveGroups();
+}
+
+// Delete current group
+function deleteGroup() {
+  if (Object.keys(groupsData.groups).length === 1) {
+    alert('Cannot delete the last group');
+    return;
+  }
+
+  const groupId = groupsData.activeGroup;
+  const groupName = groupsData.groups[groupId].name;
+
+  if (!confirm(`Delete group "${groupName}"?`)) {
+    return;
+  }
+
+  delete groupsData.groups[groupId];
+  groupsData.activeGroup = Object.keys(groupsData.groups)[0];
+  populateGroupSelect();
+  loadGroup(groupsData.activeGroup);
+  saveGroups();
+}
+
+// Event Listeners for Groups
+groupSelectEl.addEventListener('change', handleGroupChange);
+newGroupBtn.addEventListener('click', createNewGroup);
+deleteGroupBtn.addEventListener('click', deleteGroup);
+
+// Auto-save group name on blur
+groupNameInput.addEventListener('blur', () => {
+  saveCurrentGroup();
+  populateGroupSelect();
+});
+
+// Initialize groups on load
+loadGroups();
+populateGroupSelect();
+loadGroup(groupsData.activeGroup);
 
 // Initialize
 console.log('Story Recommender Web App initialized');

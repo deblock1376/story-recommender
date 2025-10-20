@@ -39,6 +39,26 @@
           ></textarea>
         </div>
 
+        <div class="group-section">
+          <label for="group-select">Feed Group</label>
+          <div class="group-controls">
+            <select id="group-select">
+              <option value="default">Default</option>
+            </select>
+            <button type="button" id="new-group-btn" class="secondary-btn">+ New Group</button>
+            <button type="button" id="delete-group-btn" class="danger-btn">Delete</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label for="group-name">Group Name</label>
+          <input
+            type="text"
+            id="group-name"
+            placeholder="e.g., Indiana Politics"
+          >
+        </div>
+
         <div class="feed-section">
           <label for="feed-urls">RSS Feed URLs (one per line)</label>
           <textarea
@@ -46,7 +66,7 @@
             rows="3"
             placeholder="https://www.mirrorindy.org/feed&#10;https://example.com/feed"
           >https://www.mirrorindy.org/feed</textarea>
-          <small>Add RSS feeds from sources you want to search for related articles</small>
+          <small>Add RSS feeds for this group, one per line</small>
         </div>
 
         <div class="settings-row">

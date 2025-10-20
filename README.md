@@ -1,14 +1,17 @@
-# Story Recommender Chrome Extension
+# Story Recommender
 
-A Chrome browser extension that displays related story recommendations on web pages using advanced TF-IDF similarity matching. Perfect for news websites, blogs, and content platforms to keep readers engaged with relevant content.
+A recommendation system that finds related articles using advanced TF-IDF similarity matching. Available as both a Chrome extension and standalone web app. Perfect for news websites, blogs, and content platforms to keep readers engaged with relevant content.
 
 ## Features
 
 - **Smart Content Analysis**: Uses TF-IDF (Term Frequency-Inverse Document Frequency) with cosine similarity to find genuinely related articles
-- **Configurable Widget**: Customize position (top/bottom, left/right), size (small/medium/large), and theme (light/dark)
+- **Two Interfaces**: Use as a Chrome extension or standalone web app
+- **URL or Text Input**: Paste article URLs or raw text to find recommendations
+- **Feed Groups**: Organize multiple RSS feeds into named groups (Chrome extension only)
+- **Configurable Similarity Threshold**: Control recommendation quality
 - **Multiple RSS Feeds**: Support for multiple RSS feed sources simultaneously
-- **Badge Notifications**: Shows recommendation count on the extension icon
-- **Keyboard Shortcut**: Quick toggle with `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+- **Badge Notifications**: Shows recommendation count on extension icon (Chrome extension only)
+- **Keyboard Shortcut**: Quick toggle with `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac) (Chrome extension only)
 - **Cross-Site Recommendations**: Extract content from any article and get recommendations from your configured feeds
 - **Smart Text Extraction**: Multi-strategy approach using semantic HTML, metadata, and common selectors
 
@@ -31,11 +34,36 @@ The extension automatically extracts article content from the current page and d
 - **Reopenable**: Click extension icon or use keyboard shortcut
 - **Configurable**: Access settings by clicking the extension icon's popup
 
+## Quick Start
+
+### Web App (Easiest)
+
+1. **Start the backend server**:
+   ```bash
+   cd backend
+   pip3 install -r requirements.txt
+   python3 server.py
+   ```
+
+2. **Open the web app**:
+   - Open `webapp/index.html` in your browser, or
+   - Visit `http://localhost:8000`
+
+3. **Find recommendations**:
+   - Paste an article URL or text
+   - Add RSS feed URLs (one per line)
+   - Adjust similarity threshold
+   - Click "Find Related Articles"
+
+### Chrome Extension
+
+For automatic recommendations while browsing, install the Chrome extension:
+
 ## Installation
 
 ### Prerequisites
 
-- Chrome browser (or Chromium-based browser)
+- Chrome browser (or Chromium-based browser) - for extension only
 - Python 3.9+ (for backend server)
 - `pip` package manager
 
@@ -156,6 +184,10 @@ story-recommender/
 ├── background.js          # Service worker
 ├── popup.html/js          # Settings UI
 ├── style.css              # Popup styles
+├── webapp/                # Standalone web app
+│   ├── index.html         # Web app interface
+│   ├── style.css          # Web app styles
+│   └── app.js             # Web app logic
 ├── backend/
 │   ├── server.py          # Flask API server
 │   ├── requirements.txt   # Python dependencies
@@ -166,9 +198,10 @@ story-recommender/
 
 ### Making Changes
 
-1. **Modify extension files**: After changes, reload extension at `chrome://extensions/`
-2. **Modify backend**: Flask runs in debug mode and auto-reloads on file changes
-3. **Test**: Visit any article page to see recommendations
+1. **Modify web app**: Refresh browser to see changes
+2. **Modify extension files**: After changes, reload extension at `chrome://extensions/`
+3. **Modify backend**: Flask runs in debug mode and auto-reloads on file changes
+4. **Test**: Visit any article page (extension) or use web app
 
 ### Git Workflow
 
@@ -181,6 +214,13 @@ git push
 
 ## Use Cases
 
+### Web App
+- **Content Curation**: Journalists can find related stories from multiple sources
+- **Story Research**: Quickly discover related coverage of a topic
+- **Collaboration**: Share interesting connections between stories with colleagues
+- **Demo/Testing**: Show the recommendation system to stakeholders
+
+### Chrome Extension
 - **News Websites**: Keep readers engaged with related articles
 - **Blogs**: Suggest similar blog posts
 - **Research**: Find related academic papers or articles

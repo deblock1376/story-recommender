@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Recommender - Find Related Articles</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Story Recommender</h1>
+      <p class="subtitle">Discover related articles from your favorite sources</p>
+    </header>
+
+    <main>
+      <div class="input-section">
+        <div class="tabs">
+          <button class="tab active" data-tab="url">Article URL</button>
+          <button class="tab" data-tab="text">Paste Text</button>
+        </div>
+
+        <div class="tab-content active" id="url-tab">
+          <label for="article-url">Enter an article URL to find related stories</label>
+          <input
+            type="url"
+            id="article-url"
+            placeholder="https://example.com/article"
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="tab-content" id="text-tab">
+          <label for="article-text">Or paste article text directly</label>
+          <textarea
+            id="article-text"
+            rows="6"
+            placeholder="Paste article text here..."
+          ></textarea>
+        </div>
+
+        <div class="feed-section">
+          <label for="feed-urls">RSS Feed URLs (one per line)</label>
+          <textarea
+            id="feed-urls"
+            rows="3"
+            placeholder="https://www.mirrorindy.org/feed&#10;https://example.com/feed"
+          >https://www.mirrorindy.org/feed</textarea>
+          <small>Add RSS feeds from sources you want to search for related articles</small>
+        </div>
+
+        <div class="settings-row">
+          <div class="setting">
+            <label for="min-similarity">
+              Minimum Similarity: <span id="similarity-value">10%</span>
+            </label>
+            <input
+              type="range"
+              id="min-similarity"
+              min="0"
+              max="50"
+              value="10"
+            >
+          </div>
+        </div>
+
+        <button id="find-btn" class="primary-btn">Find Related Articles</button>
+      </div>
+
+      <div class="results-section" id="results-section">
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Finding related articles...</p>
+        </div>
+
+        <div class="error" id="error">
+          <h3>Error</h3>
+          <p id="error-message"></p>
+        </div>
+
+        <div class="recommendations" id="recommendations">
+          <h2>Related Articles</h2>
+          <div id="recommendations-list"></div>
+        </div>
+
+        <div class="no-results" id="no-results">
+          <h3>No Related Articles Found</h3>
+          <p>Try lowering the similarity threshold or adding more RSS feeds.</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>Powered by TF-IDF similarity matching</p>
+      <p><a href="https://github.com/deblock1376/story-recommender" target="_blank">View on GitHub</a></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

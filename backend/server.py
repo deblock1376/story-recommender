@@ -14,6 +14,7 @@ from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for Chrome extension
@@ -266,6 +267,92 @@ def recommend():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/fetch-url', methods=['POST'])
+def fetch_url():
+    """
+    Endpoint to fetch and extract text from a URL
+    Expects JSON: { "url": "https://example.com/article" }
+    Returns JSON: { "text": "extracted article text..." }
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'url' not in data:
+            return jsonify({"error": "Missing 'url' field"}), 400
+
+        url = data['url']
+
+        # Fetch the URL
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        # Parse HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Remove unwanted elements
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe']):
+            element.decompose()
+
+        # Try to find article content
+        text = ""
+
+        # Strategy 1: Look for <article> tag
+        article = soup.find('article')
+        if article:
+            text = article.get_text(separator=' ', strip=True)
+
+        # Strategy 2: Look for main content area
+        if not text or len(text) < 100:
+            main = soup.find('main')
+            if main:
+                text = main.get_text(separator=' ', strip=True)
+
+        # Strategy 3: Look for common content classes
+        if not text or len(text) < 100:
+            for selector in ['.article-content', '.post-content', '.entry-content', '.story-content', '.article-body']:
+                content = soup.select_one(selector)
+                if content:
+                    text = content.get_text(separator=' ', strip=True)
+                    if len(text) >= 100:
+                        break
+
+        # Strategy 4: Get headline + meta description as fallback
+        if not text or len(text) < 100:
+            headline = soup.find('h1')
+            if headline:
+                text = headline.get_text(strip=True) + ' '
+
+            description = soup.find('meta', attrs={'name': 'description'})
+            if description and description.get('content'):
+                text += description.get('content')
+
+            og_desc = soup.find('meta', attrs={'property': 'og:description'})
+            if og_desc and og_desc.get('content'):
+                text += ' ' + og_desc.get('content')
+
+        # Clean up whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        if not text or len(text) < 10:
+            return jsonify({"error": "Could not extract text from URL"}), 400
+
+        # Limit to reasonable length (first ~2000 chars)
+        text = text[:2000]
+
+        return jsonify({"text": text})
+
+    except requests.RequestException as e:
+        print(f"Error fetching URL: {e}")
+        return jsonify({"error": f"Failed to fetch URL: {str(e)}"}), 400
+    except Exception as e:
+        print(f"Error in fetch-url endpoint: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
@@ -290,16 +377,41 @@ def refresh():
     })
 
 
+@app.route('/')
+def index():
+    """Serve the web app"""
+    try:
+        with open('../webapp/index.html', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return """
+        <h1>Story Recommender Backend</h1>
+        <p>Backend server is running!</p>
+        <p>To use the web app, open <code>webapp/index.html</code> in your browser.</p>
+        <h2>API Endpoints:</h2>
+        <ul>
+            <li>POST /recommend - Get story recommendations</li>
+            <li>POST /fetch-url - Fetch and extract text from URL</li>
+            <li>GET /health - Health check</li>
+            <li>POST /refresh - Force refresh RSS cache</li>
+        </ul>
+        """
+
+
 if __name__ == '__main__':
     print("=" * 60)
-    print("Story Recommender Backend Server - Mirror Indy Edition")
+    print("Story Recommender Backend Server")
     print("=" * 60)
     print("RSS Feed: https://www.mirrorindy.org/feed")
     print("Server running at: http://localhost:8000")
-    print("Endpoints:")
-    print("  POST /recommend - Get story recommendations")
-    print("  GET  /health    - Health check")
-    print("  POST /refresh   - Force refresh RSS cache")
+    print("\nEndpoints:")
+    print("  POST /recommend  - Get story recommendations")
+    print("  POST /fetch-url  - Fetch and extract text from URL")
+    print("  GET  /health     - Health check")
+    print("  POST /refresh    - Force refresh RSS cache")
+    print("\nWeb App:")
+    print("  Open webapp/index.html in your browser")
+    print("  or visit http://localhost:8000")
     print("=" * 60)
     print("\nFetching initial stories from RSS feed...")
 

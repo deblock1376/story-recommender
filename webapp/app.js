@@ -164,6 +164,22 @@ function createRecommendationCard(recommendation, position) {
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
 
+  // Add thumbnail if image is available
+  if (recommendation.image) {
+    const thumbnail = document.createElement('img');
+    thumbnail.src = recommendation.image;
+    thumbnail.alt = recommendation.title;
+    thumbnail.className = 'thumbnail';
+    thumbnail.onerror = function() {
+      // Hide image if it fails to load
+      this.style.display = 'none';
+    };
+    link.appendChild(thumbnail);
+  }
+
+  const textContent = document.createElement('div');
+  textContent.className = 'text-content';
+
   const title = document.createElement('h3');
   title.textContent = recommendation.title;
 
@@ -182,8 +198,9 @@ function createRecommendationCard(recommendation, position) {
 
   meta.appendChild(positionSpan);
 
-  link.appendChild(title);
-  link.appendChild(meta);
+  textContent.appendChild(title);
+  textContent.appendChild(meta);
+  link.appendChild(textContent);
   card.appendChild(link);
 
   return card;

@@ -279,7 +279,7 @@ function insertRecommendations(recommendations, settings) {
   header.style.display = 'flex';
   header.style.justifyContent = 'space-between';
   header.style.alignItems = 'center';
-  header.style.marginBottom = '8px';
+  header.style.marginBottom = '12px';
 
   const title = document.createElement('h4');
   title.style.margin = '0';
@@ -290,24 +290,52 @@ function insertRecommendations(recommendations, settings) {
   header.appendChild(createCloseButton(container, settings));
 
   // Create list
-  const list = document.createElement('ul');
-  list.style.paddingLeft = '20px';
-  list.style.margin = '0';
-  list.style.listStyleType = 'disc';
+  const list = document.createElement('div');
+  list.style.display = 'flex';
+  list.style.flexDirection = 'column';
+  list.style.gap = '12px';
 
   recommendations.forEach(rec => {
-    const li = document.createElement('li');
-    li.style.marginBottom = '8px';
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.gap = '10px';
+    item.style.alignItems = 'flex-start';
 
     const link = document.createElement('a');
     link.href = rec.link;
     link.target = '_blank';
+    link.style.textDecoration = 'none';
     link.style.color = 'inherit';
-    link.style.textDecoration = 'underline';
-    link.textContent = rec.title;
+    link.style.display = 'flex';
+    link.style.gap = '10px';
+    link.style.flex = '1';
+    link.style.alignItems = 'flex-start';
 
-    li.appendChild(link);
-    list.appendChild(li);
+    // Add thumbnail if available
+    if (rec.image) {
+      const thumbnail = document.createElement('img');
+      thumbnail.src = rec.image;
+      thumbnail.alt = rec.title;
+      thumbnail.style.width = '60px';
+      thumbnail.style.height = '60px';
+      thumbnail.style.objectFit = 'cover';
+      thumbnail.style.borderRadius = '4px';
+      thumbnail.style.flexShrink = '0';
+      thumbnail.onerror = function() {
+        this.style.display = 'none';
+      };
+      link.appendChild(thumbnail);
+    }
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = rec.title;
+    textSpan.style.textDecoration = 'underline';
+    textSpan.style.flex = '1';
+    textSpan.style.lineHeight = '1.4';
+
+    link.appendChild(textSpan);
+    item.appendChild(link);
+    list.appendChild(item);
   });
 
   container.appendChild(header);

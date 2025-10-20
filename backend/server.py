@@ -60,7 +60,7 @@ def extract_keywords(text, num_keywords=10):
 def fetch_rss_feed(feed_url=None):
     """
     Fetch and parse an RSS feed
-    Returns list of stories with id, title, link, description, and keywords
+    Returns list of stories with id, title, link, description, image, and keywords
     """
     if feed_url is None:
         feed_url = RSS_FEED_URL
@@ -83,6 +83,33 @@ def fetch_rss_feed(feed_url=None):
             # Clean HTML tags from description
             description_clean = re.sub('<[^<]+?>', '', description)
 
+            # Extract image URL from various possible fields
+            image_url = None
+
+            # Try media:content (common in many RSS feeds)
+            if hasattr(entry, 'media_content') and entry.media_content:
+                for media in entry.media_content:
+                    if media.get('medium') == 'image' or 'image' in media.get('type', ''):
+                        image_url = media.get('url')
+                        break
+
+            # Try media:thumbnail
+            if not image_url and hasattr(entry, 'media_thumbnail') and entry.media_thumbnail:
+                image_url = entry.media_thumbnail[0].get('url')
+
+            # Try enclosure (podcasts and some feeds)
+            if not image_url and hasattr(entry, 'enclosures') and entry.enclosures:
+                for enclosure in entry.enclosures:
+                    if enclosure.get('type', '').startswith('image/'):
+                        image_url = enclosure.get('href')
+                        break
+
+            # Try finding image in description HTML
+            if not image_url and description:
+                img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', description)
+                if img_match:
+                    image_url = img_match.group(1)
+
             # Extract keywords from title and description
             text_for_keywords = f"{title} {description_clean}"
             keywords = extract_keywords(text_for_keywords)
@@ -92,6 +119,7 @@ def fetch_rss_feed(feed_url=None):
                 'title': title,
                 'link': link,
                 'description': description_clean[:200],  # First 200 chars
+                'image': image_url,
                 'keywords': keywords
             })
 
@@ -252,10 +280,14 @@ def recommend():
             print(f"Top recommendation scores: {[round(score, 3) for score, _ in scored_stories[:5]]}")
             print(f"Threshold: {min_similarity}, Recommendations after filtering: {len(recommendations)}")
 
-        # Format response (only include title and link)
+        # Format response (include title, link, and image if available)
         response = {
             "recommendations": [
-                {"title": story["title"], "link": story["link"]}
+                {
+                    "title": story["title"],
+                    "link": story["link"],
+                    "image": story.get("image")
+                }
                 for story in recommendations
             ]
         }
@@ -287,8 +319,18 @@ def fetch_url():
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        try:
+            # Try with default SSL settings
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.SSLError as ssl_error:
+            # If SSL fails, provide helpful error message
+            error_msg = str(ssl_error)
+            if 'TLSV1_ALERT_PROTOCOL_VERSION' in error_msg or 'SSL' in error_msg:
+                return jsonify({
+                    "error": "SSL/TLS error: This URL requires a newer TLS version. Your Python installation may need to be updated. Try using the 'Paste Text' tab instead and copy the article text directly."
+                }), 400
+            raise
 
         # Parse HTML
         soup = BeautifulSoup(response.content, 'html.parser')

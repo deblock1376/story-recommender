@@ -363,12 +363,41 @@ const DEFAULT_SETTINGS = {
   position: 'top-right',
   size: 'medium',
   theme: 'light',
-  rssFeeds: ['https://www.mirrorindy.org/feed'],
-  minSimilarity: 0.1  // Default threshold: 0.1 (10% similarity minimum)
+  minSimilarity: 0.1,  // Default threshold: 0.1 (10% similarity minimum)
+  activeGroup: 'default',
+  groups: {
+    'default': {
+      name: 'Default',
+      feeds: ['https://www.mirrorindy.org/feed'],
+      minSimilarity: 0.1
+    }
+  },
+  // Backward compatibility
+  rssFeeds: ['https://www.mirrorindy.org/feed']
 };
 
 // Track if widget has been dismissed on this page
 let widgetDismissed = false;
+
+// Helper function to extract feeds and similarity from settings (handles both old and new format)
+function getActiveGroupSettings(settings) {
+  // New format: groups structure
+  if (settings.groups && settings.activeGroup) {
+    const group = settings.groups[settings.activeGroup];
+    if (group) {
+      return {
+        feeds: group.feeds || DEFAULT_SETTINGS.groups.default.feeds,
+        minSimilarity: group.minSimilarity !== undefined ? group.minSimilarity : 0.1
+      };
+    }
+  }
+
+  // Old format or fallback: flat structure
+  return {
+    feeds: settings.rssFeeds || DEFAULT_SETTINGS.rssFeeds,
+    minSimilarity: settings.minSimilarity !== undefined ? settings.minSimilarity : 0.1
+  };
+}
 
 // Listen for messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -376,17 +405,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Reload with new settings if widget exists
     const existing = document.getElementById('story-recommender-widget');
     if (existing && message.settings.enabled) {
-      // Handle backward compatibility
-      if (!message.settings.rssFeeds && message.settings.rssFeedUrl) {
-        message.settings.rssFeeds = [message.settings.rssFeedUrl];
-      } else if (!message.settings.rssFeeds) {
-        message.settings.rssFeeds = DEFAULT_SETTINGS.rssFeeds;
-      }
+      const groupSettings = getActiveGroupSettings(message.settings);
 
       const text = extractStoryText();
       if (text.length > 10) {
         showLoadingWidget(message.settings);
-        getRecommendation(text, '', message.settings.rssFeeds, message.settings.minSimilarity).then(result => {
+        getRecommendation(text, '', groupSettings.feeds, groupSettings.minSimilarity).then(result => {
           if (result.success) {
             if (result.recommendations.length > 0) {
               insertRecommendations(result.recommendations, message.settings);
@@ -417,17 +441,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       widgetDismissed = false;
       chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
         if (settings.enabled) {
-          // Handle backward compatibility
-          if (!settings.rssFeeds && settings.rssFeedUrl) {
-            settings.rssFeeds = [settings.rssFeedUrl];
-          } else if (!settings.rssFeeds) {
-            settings.rssFeeds = DEFAULT_SETTINGS.rssFeeds;
-          }
+          const groupSettings = getActiveGroupSettings(settings);
 
           const text = extractStoryText();
           if (text.length > 10) {
             showLoadingWidget(settings);
-            getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
+            getRecommendation(text, '', groupSettings.feeds, groupSettings.minSimilarity).then(result => {
               if (result.success) {
                 if (result.recommendations.length > 0) {
                   insertRecommendations(result.recommendations, settings);
@@ -456,19 +475,14 @@ chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
     return;
   }
 
-  // Handle backward compatibility - migrate old rssFeedUrl to rssFeeds array
-  if (!settings.rssFeeds && settings.rssFeedUrl) {
-    settings.rssFeeds = [settings.rssFeedUrl];
-  } else if (!settings.rssFeeds) {
-    settings.rssFeeds = DEFAULT_SETTINGS.rssFeeds;
-  }
+  const groupSettings = getActiveGroupSettings(settings);
 
   const text = extractStoryText();
   console.log("Story Recommender: Extracted text length:", text.length);
 
   if (text.length > 10) {
     showLoadingWidget(settings);
-    getRecommendation(text, '', settings.rssFeeds, settings.minSimilarity).then(result => {
+    getRecommendation(text, '', groupSettings.feeds, groupSettings.minSimilarity).then(result => {
       if (result.success) {
         console.log("Story Recommender: Successfully loaded", result.recommendations.length, "recommendations");
         if (result.recommendations.length > 0) {

@@ -1,44 +1,48 @@
-// Default settings
+// Default settings with groups structure
 const DEFAULT_SETTINGS = {
   enabled: true,
   position: 'top-right',
   size: 'medium',
   theme: 'light',
-  rssFeeds: ['https://www.mirrorindy.org/feed'],
-  minSimilarity: 0.1  // Default 10%
+  minSimilarity: 0.1,
+  activeGroup: 'default',
+  groups: {
+    'default': {
+      name: 'Default',
+      feeds: ['https://www.mirrorindy.org/feed'],
+      minSimilarity: 0.1
+    }
+  }
 };
+
+let currentSettings = null;
 
 // Load saved settings when popup opens
 document.addEventListener('DOMContentLoaded', async () => {
-  const settings = await loadSettings();
+  currentSettings = await loadSettings();
 
-  // Populate form with saved settings
-  document.getElementById('enabled').checked = settings.enabled;
-  document.getElementById('position').value = settings.position;
-  document.getElementById('size').value = settings.size;
-  document.getElementById('theme').value = settings.theme;
+  // Populate general settings
+  document.getElementById('enabled').checked = currentSettings.enabled;
+  document.getElementById('position').value = currentSettings.position;
+  document.getElementById('size').value = currentSettings.size;
+  document.getElementById('theme').value = currentSettings.theme;
 
-  // Handle both old (rssFeedUrl) and new (rssFeeds) format
-  if (settings.rssFeeds && Array.isArray(settings.rssFeeds)) {
-    document.getElementById('rssFeeds').value = settings.rssFeeds.join('\n');
-  } else if (settings.rssFeedUrl) {
-    // Migrate from old single URL format
-    document.getElementById('rssFeeds').value = settings.rssFeedUrl;
-  } else {
-    document.getElementById('rssFeeds').value = DEFAULT_SETTINGS.rssFeeds.join('\n');
-  }
+  // Populate group dropdown
+  populateGroupDropdown();
 
-  // Set similarity threshold (convert 0.0-1.0 to 0-100 percentage)
-  const similarityPercent = Math.round((settings.minSimilarity || 0.1) * 100);
-  document.getElementById('minSimilarity').value = similarityPercent;
-  document.getElementById('similarityValue').textContent = similarityPercent + '%';
+  // Load active group
+  loadGroup(currentSettings.activeGroup);
 
   // Update similarity value display when slider moves
   document.getElementById('minSimilarity').addEventListener('input', (e) => {
     document.getElementById('similarityValue').textContent = e.target.value + '%';
   });
 
-  // Add save button listener
+  // Event listeners
+  document.getElementById('activeGroup').addEventListener('change', handleGroupChange);
+  document.getElementById('newGroup').addEventListener('click', createNewGroup);
+  document.getElementById('deleteGroup').addEventListener('click', deleteGroup);
+  document.getElementById('groupName').addEventListener('blur', updateGroupName);
   document.getElementById('save').addEventListener('click', saveSettings);
 });
 
@@ -46,36 +50,159 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
+      // Migrate old format to new groups format
+      if (!items.groups && items.rssFeeds) {
+        items.groups = {
+          'default': {
+            name: 'Default',
+            feeds: items.rssFeeds,
+            minSimilarity: items.minSimilarity || 0.1
+          }
+        };
+        items.activeGroup = 'default';
+      }
       resolve(items);
     });
   });
 }
 
-// Save settings to Chrome storage
-async function saveSettings() {
-  const feedsText = document.getElementById('rssFeeds').value.trim();
+// Populate group dropdown
+function populateGroupDropdown() {
+  const select = document.getElementById('activeGroup');
+  select.innerHTML = '';
 
-  // Parse feeds - one per line, filter empty lines
-  const rssFeeds = feedsText
+  Object.keys(currentSettings.groups).forEach(groupId => {
+    const group = currentSettings.groups[groupId];
+    const option = document.createElement('option');
+    option.value = groupId;
+    option.textContent = group.name;
+    select.appendChild(option);
+  });
+
+  select.value = currentSettings.activeGroup;
+}
+
+// Load a specific group's settings
+function loadGroup(groupId) {
+  const group = currentSettings.groups[groupId];
+  if (!group) return;
+
+  document.getElementById('groupName').value = group.name;
+  document.getElementById('rssFeeds').value = group.feeds.join('\n');
+
+  const similarityPercent = Math.round(group.minSimilarity * 100);
+  document.getElementById('minSimilarity').value = similarityPercent;
+  document.getElementById('similarityValue').textContent = similarityPercent + '%';
+
+  // Update button states
+  document.getElementById('deleteGroup').disabled = Object.keys(currentSettings.groups).length === 1;
+}
+
+// Handle group dropdown change
+function handleGroupChange(e) {
+  // Save current group before switching
+  saveCurrentGroup();
+
+  // Load new group
+  currentSettings.activeGroup = e.target.value;
+  loadGroup(e.target.value);
+}
+
+// Save current group's data (without syncing to storage)
+function saveCurrentGroup() {
+  const groupId = currentSettings.activeGroup;
+  const group = currentSettings.groups[groupId];
+
+  if (!group) return;
+
+  const feedsText = document.getElementById('rssFeeds').value.trim();
+  const feeds = feedsText
     .split('\n')
     .map(url => url.trim())
     .filter(url => url.length > 0);
 
-  // Get similarity threshold and convert from percentage (0-100) to decimal (0.0-1.0)
   const similarityPercent = parseInt(document.getElementById('minSimilarity').value);
-  const minSimilarity = similarityPercent / 100;
 
+  group.feeds = feeds.length > 0 ? feeds : DEFAULT_SETTINGS.groups.default.feeds;
+  group.minSimilarity = similarityPercent / 100;
+}
+
+// Update group name
+function updateGroupName() {
+  const groupId = currentSettings.activeGroup;
+  const newName = document.getElementById('groupName').value.trim();
+
+  if (newName && currentSettings.groups[groupId]) {
+    currentSettings.groups[groupId].name = newName;
+    populateGroupDropdown();
+  }
+}
+
+// Create new group
+function createNewGroup() {
+  const groupId = 'group_' + Date.now();
+  const groupName = prompt('Enter group name:', 'New Group');
+
+  if (!groupName) return;
+
+  currentSettings.groups[groupId] = {
+    name: groupName,
+    feeds: ['https://www.mirrorindy.org/feed'],
+    minSimilarity: 0.1
+  };
+
+  currentSettings.activeGroup = groupId;
+  populateGroupDropdown();
+  loadGroup(groupId);
+
+  showStatus('New group created! Click Save to keep it.', 'success');
+}
+
+// Delete current group
+function deleteGroup() {
+  if (Object.keys(currentSettings.groups).length === 1) {
+    showStatus('Cannot delete the last group', 'error');
+    return;
+  }
+
+  const groupId = currentSettings.activeGroup;
+  const groupName = currentSettings.groups[groupId].name;
+
+  if (!confirm(`Delete group "${groupName}"?`)) {
+    return;
+  }
+
+  delete currentSettings.groups[groupId];
+
+  // Switch to first available group
+  currentSettings.activeGroup = Object.keys(currentSettings.groups)[0];
+  populateGroupDropdown();
+  loadGroup(currentSettings.activeGroup);
+
+  showStatus('Group deleted! Click Save to confirm.', 'success');
+}
+
+// Save all settings to Chrome storage
+async function saveSettings() {
+  // Save current group data first
+  saveCurrentGroup();
+
+  // Get general settings
   const settings = {
     enabled: document.getElementById('enabled').checked,
     position: document.getElementById('position').value,
     size: document.getElementById('size').value,
     theme: document.getElementById('theme').value,
-    rssFeeds: rssFeeds.length > 0 ? rssFeeds : DEFAULT_SETTINGS.rssFeeds,
-    minSimilarity: minSimilarity
+    activeGroup: currentSettings.activeGroup,
+    groups: currentSettings.groups
   };
 
+  // For backward compatibility, also save flat structure
+  const activeGroup = settings.groups[settings.activeGroup];
+  settings.rssFeeds = activeGroup.feeds;
+  settings.minSimilarity = activeGroup.minSimilarity;
+
   chrome.storage.sync.set(settings, () => {
-    // Show success message
     showStatus('Settings saved successfully!', 'success');
 
     // Notify content scripts to reload with new settings

@@ -46,7 +46,7 @@ label {
   cursor: pointer;
 }
 
-select, input[type="url"], textarea {
+select, input[type="url"], input[type="text"], textarea {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -58,7 +58,7 @@ select {
   cursor: pointer;
 }
 
-input[type="url"], textarea {
+input[type="url"], input[type="text"], textarea {
   width: 100%;
   box-sizing: border-box;
 }
@@ -69,7 +69,7 @@ textarea {
   min-height: 80px;
 }
 
-select:focus, input[type="url"]:focus, textarea:focus {
+select:focus, input[type="url"]:focus, input[type="text"]:focus, textarea:focus {
   outline: none;
   border-color: #4a90e2;
 }
@@ -92,6 +92,12 @@ button:hover {
 
 button:active {
   background: #2a5f8f;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .status {

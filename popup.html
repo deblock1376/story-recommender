@@ -44,10 +44,26 @@
     </div>
 
     <div class="setting-group">
+      <label for="activeGroup">Feed Group</label>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <select id="activeGroup" style="flex: 1;">
+          <option value="default">Default</option>
+        </select>
+        <button id="newGroup" type="button" style="padding: 8px 12px; white-space: nowrap;">+ New</button>
+        <button id="deleteGroup" type="button" style="padding: 8px 12px; background: #d32f2f;">Delete</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label for="groupName">Group Name</label>
+      <input type="text" id="groupName" placeholder="e.g., Indiana Politics">
+    </div>
+
+    <div class="setting-group">
       <label for="rssFeeds">RSS Feed URLs (one per line)</label>
       <textarea id="rssFeeds" rows="4" placeholder="https://www.mirrorindy.org/feed&#10;https://example.com/feed&#10;https://another-site.com/rss"></textarea>
       <small style="color: #666; font-size: 11px; margin-top: 4px; display: block;">
-        Add multiple RSS feeds, one per line. Leave blank to use Mirror Indy's feed only.
+        Add multiple RSS feeds for this group, one per line.
       </small>
     </div>
 
